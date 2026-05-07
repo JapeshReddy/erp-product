@@ -1,0 +1,64 @@
+// ─── Primary Palette ──────────────────────────────────────────────────────────
+$primary-blue:   #0B3D91;
+$accent-blue:    #1E5DB8;
+$hover-blue:     #154A96;
+
+// ─── Grays ────────────────────────────────────────────────────────────────────
+$gray-50:  #F8FAFC;
+$gray-100: #F1F5F9;
+$gray-200: #E2E8F0;
+$gray-300: #CBD5E1;
+$gray-400: #94A3B8;
+$gray-500: #6B7280;
+$gray-600: #4B5563;
+$gray-700: #374151;
+$gray-800: #1F2937;
+$gray-900: #111827;
+
+// ─── Status ───────────────────────────────────────────────────────────────────
+$green:  #22C55E;
+$yellow: #F59E0B;
+$red:    #EF4444;
+$cyan:   #3B82F6;
+$orange: #F59E0B;
+
+// ─── Bootstrap Overrides ─────────────────────────────────────────────────────
+$primary:   $primary-blue;
+$secondary: $gray-500;
+$success:   $green;
+$info:      $cyan;
+$warning:   $yellow;
+$danger:    $red;
+
+$min-contrast-ratio:       2.5 !default;
+$link-decoration:          none !default;
+$link-hover-decoration:    underline !default;
+$link-color:               $accent-blue !default;
+$link-hover-color:         $primary-blue !default;
+$light:                    $gray-100 !default;
+$border-color:             $gray-200 !default;
+$border-color-translucent: $gray-200 !default;
+$enable-negative-margins:  true !default;
+$enable-rounded:           true !default;
+$headings-font-weight:     500 !default;
+$grid-gutter-width:        2rem !default;
+
+// ─── Typography ───────────────────────────────────────────────────────────────
+$font-family-base: 'Poppins', sans-serif !default;
+$font-size-base:   .875rem !default;
+$font-size-sm:     $font-size-base * .875 !default;
+$font-size-lg:     $font-size-base * 1.25 !default;
+$font-xs:          0.75rem !default;
+
+// ─── Spacing ──────────────────────────────────────────────────────────────────
+$spacer: 1rem !default;
+$spacers: (
+  0: 0, 1: $spacer * 0.25, 2: $spacer * 0.5, 3: $spacer,
+  4: $spacer * 1.5, 5: $spacer * 2, 6: $spacer * 2.5,
+  7: $spacer * 3, 8: $spacer * 4, 9: $spacer * 5,
+  10: $spacer * 6, 11: $spacer * 8,
+) !default;
+
+$input-btn-padding-y:  0.5rem !default;
+$input-btn-padding-x:  0.875rem !default;
+$table-th-font-weight: 500 !default;
