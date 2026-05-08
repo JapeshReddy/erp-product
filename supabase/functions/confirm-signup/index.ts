@@ -304,6 +304,7 @@ Deno.serve(async (req: Request) => {
       new Date(now).toLocaleString("en-US", { timeZone: "UTC" }) + " UTC",
     availableRoles,
     appUrl,
+    requestId: ar.id,
   });
 
   const { messageId, error: emailError } = await sendSmtpEmail({
