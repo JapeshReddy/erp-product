@@ -81,24 +81,20 @@ export function validateSignIn(data: { email: string; password: string }) {
 
 // ─── Sign Up Validation ───────────────────────────────────────────────────────
 export function validateSignUp(data: {
-  fullName: string
-  companyName: string
-  email: string
-  password: string
-  confirmPassword: string
-  acceptTerms: boolean
+  fullName: string; email: string
+  password: string; confirmPassword: string
+  organizationId: string; acceptTerms: boolean
 }) {
   const errors: FormErrors = {}
   const nameErr = validators.fullName(data.fullName)
   if (nameErr) errors.fullName = { message: nameErr }
-  const companyErr = validators.required(data.companyName, 'Company name')
-  if (companyErr) errors.companyName = { message: companyErr }
   const emailErr = validators.email(data.email)
   if (emailErr) errors.email = { message: emailErr }
   const passErr = validators.minLength(data.password, VALIDATION.PASSWORD_MIN_LENGTH, 'Password')
   if (passErr) errors.password = { message: passErr }
   const matchErr = validators.passwordMatch(data.password, data.confirmPassword)
   if (matchErr) errors.confirmPassword = { message: matchErr }
+  if (!data.organizationId) errors.organizationId = { message: 'Please select an organization.' }
   if (!data.acceptTerms) errors.acceptTerms = { message: 'You must accept the terms to continue.' }
   return errors
 }

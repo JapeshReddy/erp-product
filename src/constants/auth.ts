@@ -22,9 +22,9 @@ export const SIGN_IN_DEFAULTS = {
 
 export const SIGN_UP_DEFAULTS = {
   fullName: '',
-  companyName: '',
   email: '',
   password: '',
   confirmPassword: '',
+  organizationId: '',
   acceptTerms: false,
 }

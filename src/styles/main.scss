@@ -3,6 +3,8 @@
 @import './variables';
 @import 'bootstrap/scss/bootstrap';
 @import './auth';
+@import './callback';
+@import './confirm-signup';
 
 *, *::before, *::after { box-sizing: border-box; }
 

@@ -6,11 +6,17 @@ export interface SignInFormData {
 
 export interface SignUpFormData {
   fullName: string
-  companyName: string
   email: string
   password: string
   confirmPassword: string
+  organizationId: string
   acceptTerms: boolean
+}
+
+export interface Organization {
+  id: string
+  name: string
+  allowed_email_domains: string[]
 }
 
 export interface FormFieldError {
