@@ -1,104 +1,33 @@
-import React, { useState, useCallback } from "react";
-import { Link } from "react-router-dom";
-import { AuthCard, FormField, PasswordInput } from "@/components/ui";
-import { useFormValidation, validateSignIn } from "@/hooks/useFormValidation";
-import { ROUTES, SIGN_IN_DEFAULTS, VALIDATION } from "@/constants/auth";
-import type { SignInFormData } from "@/types/auth";
+import React from 'react'
+import { Link } from 'react-router-dom'
+import { AuthCard, FormField, PasswordInput } from '@/components/ui'
+import { useSignIn } from '@/hooks/useSignIn'
+import { ROUTES, VALIDATION } from '@/constants/auth'
+import AlertBanner from '@/components/ui/AlertBanner'
 
 const SignIn: React.FC = () => {
-  const [formData, setFormData] = useState<SignInFormData>(SIGN_IN_DEFAULTS);
-  const [isLoading, setIsLoading] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [formErrors, setFormErrors] = useState<
-    ReturnType<typeof validateSignIn>
-  >({});
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const { markTouched, markSubmitted } = useFormValidation()
-
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-    setSubmitError(null);
-  }, []);
-
-  const handleBlur = useCallback(
-    (field: string) => {
-      setTouched((prev) => ({ ...prev, [field]: true }));
-      markTouched(field);
-      setFormErrors(validateSignIn(formData));
-    },
-    [formData, markTouched],
-  );
-
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-      markSubmitted()
-      setTouched({ email: true, password: true });
-      const errors = validateSignIn(formData);
-      setFormErrors(errors);
-      if (Object.keys(errors).length > 0) return;
-
-      setIsLoading(true);
-      setSubmitError(null);
-      try {
-        // TODO: Uncomment when Supabase is connected
-        // const { error } = await supabase.auth.signInWithPassword({
-        //   email: formData.email,
-        //   password: formData.password,
-        // })
-        // if (error) throw error
-        // navigate(ROUTES.DASHBOARD)
-        await new Promise((r) => setTimeout(r, 1000));
-        console.log("Sign in:", formData.email);
-      } catch (err) {
-        setSubmitError(
-          err instanceof Error ? err.message : "Invalid email or password.",
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [formData],
-  );
-
-  const getError = (field: keyof typeof formErrors) =>
-    touched[field] ? (formErrors[field]?.message ?? null) : null;
+  const {
+    formData,
+    submitError,
+    isLoading,
+    handleChange,
+    handleBlur,
+    handleSubmit,
+    getError,
+  } = useSignIn()
 
   return (
     <AuthCard
       title="Sign in to your account"
       subtitle={`Welcome back! Remember me for ${VALIDATION.REMEMBER_ME_DAYS} days.`}
     >
-      {submitError && (
-        <div className="auth-alert alert alert-danger" role="alert">
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-            style={{ flexShrink: 0, marginTop: 1 }}
-          >
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="12" />
-            <line x1="12" y1="16" x2="12.01" y2="16" />
-          </svg>
-          {submitError}
-        </div>
-      )}
+      {submitError && <AlertBanner message={submitError} />}
+
       <form onSubmit={handleSubmit} noValidate>
         <FormField
           id="email"
           label="Email address"
-          error={getError("email")}
+          error={getError('email')}
           required
         >
           <input
@@ -106,6 +35,7 @@ const SignIn: React.FC = () => {
             name="email"
             value={formData.email}
             onChange={handleChange}
+            onBlur={() => handleBlur('email')}
             placeholder="name@company.com"
             autoComplete="email"
             autoFocus
@@ -115,14 +45,10 @@ const SignIn: React.FC = () => {
         <FormField
           id="password"
           label="Password"
-          error={getError("password")}
+          error={getError('password')}
           required
           labelAction={
-            <Link
-              to={ROUTES.FORGOT_PASSWORD}
-              className="link-auth"
-              tabIndex={-1}
-            >
+            <Link to={ROUTES.FORGOT_PASSWORD} className="link-auth" tabIndex={-1}>
               Forgot password?
             </Link>
           }
@@ -131,6 +57,7 @@ const SignIn: React.FC = () => {
             name="password"
             value={formData.password}
             onChange={handleChange}
+            onBlur={() => handleBlur('password')}
             placeholder="Enter your password"
             autoComplete="current-password"
           />
@@ -168,17 +95,18 @@ const SignIn: React.FC = () => {
                 Signing in…
               </span>
             ) : (
-              "Sign in"
+              'Sign in'
             )}
           </button>
         </div>
       </form>
+
       <p className="auth-footer-text">
-        Don't have an account?{" "}
+        Don't have an account?{' '}
         <Link to={ROUTES.SIGN_UP}>Create a free account</Link>
       </p>
     </AuthCard>
-  );
-};
+  )
+}
 
-export default SignIn;
+export default SignIn
