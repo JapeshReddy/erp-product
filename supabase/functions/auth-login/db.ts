@@ -188,3 +188,21 @@ export async function countRecentFailedAttempts(
 
   return count ?? 0
 }
+
+
+
+// ─── Fetch client_admin by user_id ────────────────────────────────────────────
+
+export async function fetchClientAdmin(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<{ data: { user_id: string; client_id: string } | null; error: unknown }> {
+  const { data, error } = await supabase
+    .schema('product')
+    .from('client_admins')
+    .select('user_id, client_id')
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  return { data, error }
+}
