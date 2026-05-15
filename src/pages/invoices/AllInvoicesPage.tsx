@@ -1,10 +1,22 @@
-import React, { useState } from 'react'
-import { ChevronRight, RefreshCw, FileText } from 'lucide-react'
+import React, { useState, useMemo } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  flexRender,
+  createColumnHelper,
+  type SortingState,
+  type Column,
+} from '@tanstack/react-table'
+import { ChevronRight, RefreshCw, FileText, ChevronsUpDown, ChevronUp, ChevronDown } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useAllInvoices } from '@/hooks/useAllInvoices'
 import InvoiceStatusBadge from '@/components/invoices/InvoiceStatusBadge'
 import InvoiceFiltersBar from '@/components/invoices/InvoiceFiltersBar'
 import InvoiceDetailModal from '@/components/invoices/InvoiceDetailModal'
+import FilterDropdown, { type DropdownOption } from '@/components/ui/FilterDropdown'
+import { TableRowSkeleton } from '@/components/ui/SkeletonLoader'
 import type { InvoiceRow } from '@/types/invoice'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -20,42 +32,59 @@ function fmtDate(d: string | null): string {
   return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-// ─── Skeleton Row ─────────────────────────────────────────────────────────────
+// ─── Sortable Column Header ───────────────────────────────────────────────────
 
-const SkeletonRows: React.FC = () => (
-  <>
-    {[1,2,3,4,5].map(i => (
-      <tr key={i} className="inv-table-skeleton-row">
-        {[1,2,3,4,5,6,7,8,9].map(j => (
-          <td key={j}><div className="inv-skeleton-cell" /></td>
-        ))}
-      </tr>
-    ))}
-  </>
-)
+function SortableHeader({ column, label }: { column: Column<InvoiceRow, unknown>; label: string }) {
+  const sorted = column.getIsSorted()
+  return (
+    <button
+      className="inv-th-sort-btn"
+      onClick={column.getToggleSortingHandler()}
+      aria-sort={sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : 'none'}
+    >
+      {label}
+      <span className="inv-th-sort-icon" aria-hidden="true">
+        {sorted === 'asc'  ? <ChevronUp size={12} />
+        : sorted === 'desc' ? <ChevronDown size={12} />
+        : <ChevronsUpDown size={12} style={{ opacity: 0.4 }} />}
+      </span>
+    </button>
+  )
+}
+
+// ─── Column Definitions ───────────────────────────────────────────────────────
+
+const columnHelper = createColumnHelper<InvoiceRow>()
 
 // ─── Empty State ──────────────────────────────────────────────────────────────
 
 const EmptyState: React.FC = () => (
   <tr>
     <td colSpan={9}>
-      <div className="inv-table-empty">
+      <motion.div
+        className="inv-table-empty"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.22 }}
+      >
         <FileText size={40} />
         <p>No invoices found</p>
         <span>Try adjusting your filters or date range.</span>
-      </div>
+      </motion.div>
     </td>
   </tr>
 )
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// ─── Date Range Options ───────────────────────────────────────────────────────
 
-const DATE_RANGE_LABELS: Record<string, string> = {
-  THIS_MONTH:     'This Month',
-  LAST_3_MONTHS:  'Last 3 Months',
-  LAST_6_MONTHS:  'Last 6 Months',
-  CUSTOM:         'Custom Range',
-}
+const DATE_RANGE_OPTIONS: DropdownOption[] = [
+  { value: 'THIS_MONTH',    label: 'This Month' },
+  { value: 'LAST_3_MONTHS', label: 'Last 3 Months' },
+  { value: 'LAST_6_MONTHS', label: 'Last 6 Months' },
+  { value: 'CUSTOM',        label: 'Custom Range' },
+]
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 
 const AllInvoicesPage: React.FC = () => {
   const { user } = useAuth()
@@ -67,7 +96,71 @@ const AllInvoicesPage: React.FC = () => {
   } = useAllInvoices(user?.client_id)
 
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceRow | null>(null)
-  const [showDateDropdown, setShowDateDropdown] = useState(false)
+  const [sorting,         setSorting]         = useState<SortingState>([])
+
+  const columns = useMemo(() => [
+    columnHelper.accessor('id', {
+      header: 'Invoice ID',
+      cell:   info => <span className="inv-table-id">#{info.getValue().slice(0, 8).toUpperCase()}</span>,
+      enableSorting: false,
+    }),
+    columnHelper.accessor('invoice_date', {
+      header: ({ column }) => <SortableHeader column={column} label="Invoice Date" />,
+      cell:   info => fmtDate(info.getValue()),
+    }),
+    columnHelper.accessor('vendor', {
+      header: ({ column }) => <SortableHeader column={column} label="Vendor" />,
+      cell:   info => <span className="inv-table-vendor">{info.getValue() ?? '—'}</span>,
+    }),
+    columnHelper.accessor('po_number', {
+      header:        'PO Number',
+      cell:          info => info.getValue() ?? '—',
+      enableSorting: false,
+    }),
+    columnHelper.accessor('total_amount', {
+      header: ({ column }) => <SortableHeader column={column} label="Total Amount" />,
+      cell:   info => <span className="inv-table-amount">{fmt(info.getValue(), info.row.original.currency)}</span>,
+    }),
+    columnHelper.accessor('currency', {
+      header:        'Currency',
+      cell:          info => info.getValue() ?? '—',
+      enableSorting: false,
+    }),
+    columnHelper.accessor('approval_status', {
+      header:        'Status',
+      cell:          info => <InvoiceStatusBadge status={info.getValue()} />,
+      enableSorting: false,
+    }),
+    columnHelper.accessor('created_by', {
+      header:        'Created By',
+      cell:          info => <span className="inv-table-muted">{info.getValue() ?? '—'}</span>,
+      enableSorting: false,
+    }),
+    columnHelper.display({
+      id:     'actions',
+      header: 'Action',
+      cell:   ({ row }) => (
+        <button
+          className="inv-view-btn"
+          onClick={() => setSelectedInvoice(row.original)}
+          aria-label={`View invoice ${row.original.id.slice(0, 8).toUpperCase()}`}
+        >
+          View
+        </button>
+      ),
+    }),
+  ], [])
+
+  const table = useReactTable({
+    data,
+    columns,
+    state:               { sorting },
+    onSortingChange:     setSorting,
+    getCoreRowModel:     getCoreRowModel(),
+    getSortedRowModel:   getSortedRowModel(),
+    manualPagination:    true,
+    pageCount:           totalPages,
+  })
 
   const from = page * PAGE_SIZE + 1
   const to   = Math.min((page + 1) * PAGE_SIZE, total)
@@ -77,7 +170,12 @@ const AllInvoicesPage: React.FC = () => {
       <div className="inv-container">
 
         {/* Page Header */}
-        <div className="inv-page-header">
+        <motion.div
+          className="inv-page-header"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+        >
           <div className="inv-breadcrumb">
             <span>Invoices</span>
             <ChevronRight size={12} className="inv-breadcrumb-sep" />
@@ -88,97 +186,103 @@ const AllInvoicesPage: React.FC = () => {
               <h1>All Invoices</h1>
               <p>Manage and review all invoice records across your organisation.</p>
             </div>
+
             {/* Date Range Dropdown */}
-            <div style={{ position: 'relative' }}>
-              <button
-                className="inv-date-range-btn"
-                onClick={() => setShowDateDropdown(v => !v)}
-              >
-                <span>📅</span>
-                {DATE_RANGE_LABELS[filters.dateRange]}
-                <ChevronRight size={14} style={{ transform: 'rotate(90deg)' }} />
-              </button>
-              {showDateDropdown && (
-                <div className="inv-date-dropdown">
-                  {Object.entries(DATE_RANGE_LABELS).map(([key, label]) => (
-                    <button
-                      key={key}
-                      className={`inv-date-dropdown-item ${filters.dateRange === key ? 'active' : ''}`}
-                      onClick={() => { updateFilter('dateRange', key); setShowDateDropdown(false) }}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            <FilterDropdown
+              value={filters.dateRange}
+              options={DATE_RANGE_OPTIONS}
+              onChange={v => updateFilter('dateRange', v)}
+              placeholder="Date Range"
+            />
           </div>
-        </div>
+        </motion.div>
 
         {/* Filters */}
-        <InvoiceFiltersBar
-          filters={filters}
-          vendors={vendors}
-          currencies={currencies}
-          onUpdate={updateFilter}
-          onReset={resetFilters}
-        />
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, delay: 0.05 }}
+        >
+          <InvoiceFiltersBar
+            filters={filters}
+            vendors={vendors}
+            currencies={currencies}
+            onUpdate={updateFilter}
+            onReset={resetFilters}
+          />
+        </motion.div>
 
         {/* Table Card */}
-        <div className="inv-table-card">
+        <motion.div
+          className="inv-table-card"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.22, delay: 0.08 }}
+        >
           <div className="inv-table-card-header">
             <span className="inv-table-card-title">
-              {isLoading ? 'Loading…' : `${total.toLocaleString()} Invoice${total !== 1 ? 's' : ''}`}
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={isLoading ? 'loading' : total}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  {isLoading ? 'Loading…' : `${total.toLocaleString()} Invoice${total !== 1 ? 's' : ''}`}
+                </motion.span>
+              </AnimatePresence>
             </span>
-            <button className="inv-table-refresh-btn" onClick={refresh} disabled={isLoading}>
-              <RefreshCw size={14} className={isLoading ? 'inv-spin' : ''} />
+            <button
+              className="inv-table-refresh-btn"
+              onClick={() => refresh()}
+              disabled={isLoading}
+              aria-label="Refresh invoices"
+            >
+              <RefreshCw
+                size={14}
+                className={isLoading ? 'inv-spin' : ''}
+                style={{ transition: 'transform 0.3s ease' }}
+              />
             </button>
           </div>
 
           <div className="inv-table-scroll">
-            <table className="inv-table">
+            <table className="inv-table" role="grid">
               <thead>
-                <tr>
-                  <th>Invoice ID</th>
-                  <th>Invoice Date</th>
-                  <th>Vendor</th>
-                  <th>PO Number</th>
-                  <th>Total Amount</th>
-                  <th>Currency</th>
-                  <th>Status</th>
-                  <th>Created By</th>
-                  <th>Action</th>
-                </tr>
+                {table.getHeaderGroups().map(hg => (
+                  <tr key={hg.id} role="row">
+                    {hg.headers.map(header => (
+                      <th key={header.id} scope="col" colSpan={header.colSpan}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(header.column.columnDef.header, header.getContext())}
+                      </th>
+                    ))}
+                  </tr>
+                ))}
               </thead>
               <tbody>
                 {isLoading ? (
-                  <SkeletonRows />
-                ) : data.length === 0 ? (
+                  <TableRowSkeleton rows={8} columns={9} />
+                ) : table.getRowModel().rows.length === 0 ? (
                   <EmptyState />
                 ) : (
-                  data.map(inv => (
-                    <tr key={inv.id} className="inv-table-row">
-                      <td>
-                        <span className="inv-table-id">
-                          #{inv.id.slice(0, 8).toUpperCase()}
-                        </span>
-                      </td>
-                      <td>{fmtDate(inv.invoice_date)}</td>
-                      <td className="inv-table-vendor">{inv.vendor ?? '—'}</td>
-                      <td>{inv.po_number ?? '—'}</td>
-                      <td className="inv-table-amount">{fmt(inv.total_amount, inv.currency)}</td>
-                      <td>{inv.currency ?? '—'}</td>
-                      <td><InvoiceStatusBadge status={inv.approval_status} /></td>
-                      <td className="inv-table-muted">{inv.created_by ?? '—'}</td>
-                      <td>
-                        <button
-                          className="inv-view-btn"
-                          onClick={() => setSelectedInvoice(inv)}
-                        >
-                          View
-                        </button>
-                      </td>
-                    </tr>
+                  table.getRowModel().rows.map((row, i) => (
+                    <motion.tr
+                      key={row.id}
+                      className="inv-table-row"
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: Math.min(i * 0.03, 0.25), duration: 0.18, ease: 'easeOut' }}
+                      layout
+                    >
+                      {row.getVisibleCells().map(cell => (
+                        <td key={cell.id}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      ))}
+                    </motion.tr>
                   ))
                 )}
               </tbody>
@@ -187,15 +291,21 @@ const AllInvoicesPage: React.FC = () => {
 
           {/* Pagination */}
           {total > PAGE_SIZE && (
-            <div className="inv-pagination">
+            <motion.div
+              className="inv-pagination"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.15 }}
+            >
               <span className="inv-pagination-info">
                 Showing {from}–{to} of {total.toLocaleString()}
               </span>
-              <div className="inv-pagination-btns">
+              <div className="inv-pagination-btns" role="navigation" aria-label="Pagination">
                 <button
                   className="inv-page-btn"
                   onClick={() => setPage(p => p - 1)}
                   disabled={page === 0}
+                  aria-label="Previous page"
                 >
                   Previous
                 </button>
@@ -207,6 +317,8 @@ const AllInvoicesPage: React.FC = () => {
                       key={p}
                       className={`inv-page-btn ${p === page ? 'active' : ''}`}
                       onClick={() => setPage(p)}
+                      aria-label={`Page ${p + 1}`}
+                      aria-current={p === page ? 'page' : undefined}
                     >
                       {p + 1}
                     </button>
@@ -216,23 +328,27 @@ const AllInvoicesPage: React.FC = () => {
                   className="inv-page-btn"
                   onClick={() => setPage(p => p + 1)}
                   disabled={page >= totalPages - 1}
+                  aria-label="Next page"
                 >
                   Next
                 </button>
               </div>
-            </div>
+            </motion.div>
           )}
-        </div>
+        </motion.div>
 
       </div>
 
       {/* Detail Modal */}
-      {selectedInvoice && (
-        <InvoiceDetailModal
-          invoice={selectedInvoice}
-          onClose={() => setSelectedInvoice(null)}
-        />
-      )}
+      <AnimatePresence>
+        {selectedInvoice && (
+          <InvoiceDetailModal
+            key={selectedInvoice.id}
+            invoice={selectedInvoice}
+            onClose={() => setSelectedInvoice(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }

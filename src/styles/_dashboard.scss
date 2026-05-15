@@ -1,51 +1,111 @@
 // ─── CSS Custom Properties ────────────────────────────────────────────────────
 
 :root {
-  // Light mode
+  // Light mode surfaces
   --erp-bg:           #F1F5F9;
   --erp-surface:      #FFFFFF;
   --erp-surface-2:    #F8FAFC;
+  --erp-surface-3:    #F1F5F9;
+
+  // Borders
   --erp-border:       #E2E8F0;
-  --erp-text-primary: #0F172A;
+  --erp-border-light: #F1F5F9;
+
+  // Text
+  --erp-text-primary:   #0F172A;
   --erp-text-secondary: #64748B;
-  --erp-text-muted:   #94A3B8;
-  --erp-sidebar-bg:   #FFFFFF;
-  --erp-sidebar-text: #374151;
-  --erp-sidebar-hover:#F1F5F9;
-  --erp-sidebar-active-bg: #EFF6FF;
+  --erp-text-muted:     #94A3B8;
+
+  // Sidebar
+  --erp-sidebar-bg:          #FFFFFF;
+  --erp-sidebar-text:        #374151;
+  --erp-sidebar-hover:       #F8FAFC;
+  --erp-sidebar-active-bg:   #EFF6FF;
   --erp-sidebar-active-text: #2563EB;
-  --erp-header-bg:    #FFFFFF;
-  --erp-shadow:       0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
-  --erp-shadow-md:    0 4px 16px rgba(0,0,0,0.08);
+
+  // Header
+  --erp-header-bg: #FFFFFF;
+
+  // Shadows — layered for depth
+  --erp-shadow:       0 1px 2px rgba(0,0,0,0.04), 0 2px 6px rgba(0,0,0,0.05);
+  --erp-shadow-md:    0 4px 12px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.04);
+  --erp-shadow-lg:    0 12px 40px rgba(0,0,0,0.10), 0 4px 12px rgba(0,0,0,0.06);
+  --erp-shadow-xl:    0 24px 64px rgba(0,0,0,0.14), 0 8px 24px rgba(0,0,0,0.08);
+  --erp-shadow-focus: 0 0 0 3px rgba(37,99,235,0.12);
+
+  // Brand colors
   --erp-primary:      #2563EB;
+  --erp-primary-hover:#1D4ED8;
   --erp-success:      #16A34A;
   --erp-warning:      #D97706;
   --erp-danger:       #DC2626;
   --erp-info:         #0891B2;
-  --erp-transition:   0.2s ease;
-  --erp-sidebar-width: 240px;
-  --erp-sidebar-collapsed: 64px;
-  --erp-header-height: 60px;
-  --erp-radius:       10px;
-  --erp-radius-sm:    6px;
+
+  // Transitions
+  --erp-transition:    0.18s ease;
+  --erp-transition-md: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+
+  // Layout
+  --erp-sidebar-width:      240px;
+  --erp-sidebar-collapsed:  64px;
+  --erp-header-height:      60px;
+
+  // Radii
+  --erp-radius:    10px;
+  --erp-radius-sm: 6px;
+  --erp-radius-lg: 14px;
+  --erp-radius-xl: 18px;
+
+  // Z-index scale — stacking order: content < header < overlay < sidebar < dropdown < modal < toast
+  --erp-z-header:   90;   // above main content, below mobile overlay
+  --erp-z-sidebar:  120;  // above overlay so drawer slides over backdrop
+  --erp-z-dropdown: 200;
+  --erp-z-modal:    300;
+  --erp-z-toast:    400;
+
+  // Tooltip colors for collapsed sidebar tooltips
+  --erp-tooltip-bg:   rgba(15, 23, 42, 0.94);
+  --erp-tooltip-text: #F8FAFC;
 }
 
 [data-theme='dark'] {
-  --erp-bg:           #0F172A;
-  --erp-surface:      #1E293B;
+  --erp-bg:           #0B1120;
+  --erp-surface:      #1A2332;
   --erp-surface-2:    #111827;
-  --erp-border:       #1F2937;
-  --erp-text-primary: #F1F5F9;
-  --erp-text-secondary: #94A3B8;
-  --erp-text-muted:   #475569;
-  --erp-sidebar-bg:   #111827;
-  --erp-sidebar-text: #CBD5E1;
-  --erp-sidebar-hover:#1E293B;
-  --erp-sidebar-active-bg: #1E3A5F;
+  --erp-surface-3:    #0F172A;
+
+  --erp-border:       #1E2D3D;
+  --erp-border-light: #1A2332;
+
+  --erp-text-primary:   #F1F5F9;
+  --erp-text-secondary: #8DA4B8;
+  --erp-text-muted:     #475569;
+
+  --erp-sidebar-bg:          #111827;
+  --erp-sidebar-text:        #CBD5E1;
+  --erp-sidebar-hover:       #1A2332;
+  --erp-sidebar-active-bg:   rgba(37,99,235,0.18);
   --erp-sidebar-active-text: #60A5FA;
-  --erp-header-bg:    #111827;
-  --erp-shadow:       0 1px 3px rgba(0,0,0,0.4);
-  --erp-shadow-md:    0 4px 16px rgba(0,0,0,0.4);
+
+  --erp-header-bg: #111827;
+
+  --erp-shadow:       0 1px 2px rgba(0,0,0,0.3), 0 2px 6px rgba(0,0,0,0.2);
+  --erp-shadow-md:    0 4px 12px rgba(0,0,0,0.35), 0 2px 4px rgba(0,0,0,0.25);
+  --erp-shadow-lg:    0 12px 40px rgba(0,0,0,0.45), 0 4px 12px rgba(0,0,0,0.3);
+  --erp-shadow-xl:    0 24px 64px rgba(0,0,0,0.55), 0 8px 24px rgba(0,0,0,0.4);
+  --erp-shadow-focus: 0 0 0 3px rgba(96,165,250,0.2);
+
+  // Tooltip colors in dark mode (inverted — light tooltip on dark page)
+  --erp-tooltip-bg:   rgba(241, 245, 249, 0.96);
+  --erp-tooltip-text: #0F172A;
+}
+
+// ─── Global Overflow Prevention ───────────────────────────────────────────────
+
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100%;
 }
 
 // ─── App Shell ────────────────────────────────────────────────────────────────
@@ -71,21 +131,59 @@
   border-right: 1px solid var(--erp-border);
   display: flex;
   flex-direction: column;
-  z-index: 100;
+  z-index: var(--erp-z-sidebar);
   transition: width var(--erp-transition), transform var(--erp-transition),
               background var(--erp-transition), border-color var(--erp-transition);
   overflow: hidden;
 
   &.collapsed {
     width: var(--erp-sidebar-collapsed);
+    overflow: visible; // allow tooltip ::after pseudo-elements to overflow sidebar edge
 
     .sidebar-label,
     .sidebar-group-label,
     .sidebar-logo-text,
     .sidebar-chevron { display: none; }
 
-    .sidebar-nav-item { justify-content: center; padding: 0.625rem; }
-    .sidebar-logo { justify-content: center; padding: 0 1rem; }
+    .sidebar-nav {
+      overflow: visible; // inherit overflow so tooltips aren't clipped by scroll container
+    }
+
+    .sidebar-nav-item {
+      justify-content: center;
+      padding: 0.6875rem 0.5rem;
+      margin: 0 0.25rem;
+      min-height: 44px; // touch-friendly hit area
+      position: relative;
+    }
+
+    .sidebar-logo { overflow: hidden; justify-content: center; padding: 0 1rem; }
+  }
+
+  // CSS tooltips for collapsed mode — rendered via ::after on each [title] button
+  &.collapsed .sidebar-nav-item[title]::after {
+    content: attr(title);
+    position: absolute;
+    left: calc(100% + 12px);
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--erp-tooltip-bg, rgba(15, 23, 42, 0.94));
+    color: var(--erp-tooltip-text, #F8FAFC);
+    padding: 0.3125rem 0.625rem;
+    border-radius: var(--erp-radius-sm);
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+    z-index: var(--erp-z-dropdown);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  &.collapsed .sidebar-nav-item:hover[title]::after,
+  &.collapsed .sidebar-nav-item:focus-visible[title]::after {
+    opacity: 1;
   }
 
   &.hidden {
@@ -240,7 +338,7 @@
   align-items: center;
   gap: 1rem;
   padding: 0 1.5rem;
-  z-index: 99;
+  z-index: var(--erp-z-header);
   transition: left var(--erp-transition), background var(--erp-transition), border-color var(--erp-transition);
 
   &.sidebar-collapsed { left: var(--erp-sidebar-collapsed); }
@@ -262,7 +360,8 @@
 
   .header-search {
     flex: 1;
-    max-width: 360px;
+    max-width: clamp(140px, 28vw, 360px);
+    min-width: 0;
     position: relative;
 
     input {
@@ -378,7 +477,8 @@
 .erp-main {
   margin-left: var(--erp-sidebar-width);
   margin-top: var(--erp-header-height);
-  padding: 1.5rem 1.75rem;
+  // clamp() gives fluid padding: 0.875rem on mobile → 1.75rem on wide desktop
+  padding: clamp(0.875rem, 2vw, 1.5rem) clamp(0.875rem, 2.5vw, 1.75rem);
   min-height: calc(100vh - var(--erp-header-height));
   transition: margin-left var(--erp-transition), width var(--erp-transition);
   width: calc(100% - var(--erp-sidebar-width));
@@ -393,9 +493,6 @@
     margin-left: 0;
     width: 100%;
   }
-
-  @media (max-width: 1280px) { padding: 1.25rem 1.5rem; }
-  @media (max-width: 768px)  { padding: 1rem; }
 }
 
 // ─── KPI Cards ────────────────────────────────────────────────────────────────
@@ -407,7 +504,7 @@
   margin-bottom: 0.75rem;
 
   @media (max-width: 1200px) { grid-template-columns: repeat(2, 1fr); }
-  @media (max-width: 640px)  { grid-template-columns: 1fr; }
+  @media (max-width: 480px)  { grid-template-columns: 1fr; }
 }
 
 .kpi-card {
@@ -416,13 +513,18 @@
   border-radius: var(--erp-radius);
   padding: 1rem 1.125rem;
   box-shadow: var(--erp-shadow);
-  transition: box-shadow var(--erp-transition), background var(--erp-transition),
-              border-color var(--erp-transition), transform var(--erp-transition);
+  transition:
+    box-shadow var(--erp-transition),
+    background var(--erp-transition),
+    border-color var(--erp-transition),
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   cursor: default;
+  animation: erp-slide-up 0.3s ease both;
 
   &:hover {
     box-shadow: var(--erp-shadow-md);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    border-color: rgba(37,99,235,0.15);
   }
 
   .kpi-header {
@@ -513,13 +615,19 @@
   border: 1px solid var(--erp-border);
   border-radius: var(--erp-radius);
   box-shadow: var(--erp-shadow);
-  transition: background var(--erp-transition), border-color var(--erp-transition);
+  transition:
+    background var(--erp-transition),
+    border-color var(--erp-transition),
+    box-shadow var(--erp-transition);
+  animation: erp-slide-up 0.28s ease both;
 
   .section-card-header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     padding: 1.125rem 1.25rem 0;
+    flex-wrap: wrap;
+    gap: 0.5rem;
 
     .section-card-title {
       font-size: 0.9375rem;
@@ -539,6 +647,7 @@
       align-items: center;
       gap: 0.5rem;
       flex-shrink: 0;
+      flex-wrap: wrap;
     }
   }
 
@@ -555,7 +664,7 @@
   gap: 1rem;
   margin-bottom: 1rem;
 
-  @media (max-width: 1024px) { grid-template-columns: 1fr; }
+  @media (max-width: 900px) { grid-template-columns: 1fr; }
 }
 
 .dashboard-grid-3 {
@@ -565,7 +674,7 @@
   margin-bottom: 1rem;
 
   @media (max-width: 1100px) { grid-template-columns: 1fr 1fr; }
-  @media (max-width: 768px)  { grid-template-columns: 1fr; }
+  @media (max-width: 640px)  { grid-template-columns: 1fr; }
 }
 
 .dashboard-grid-main-side {
@@ -574,7 +683,7 @@
   gap: 1rem;
   margin-bottom: 1rem;
 
-  @media (max-width: 1024px) { grid-template-columns: 1fr; }
+  @media (max-width: 900px) { grid-template-columns: 1fr; }
 }
 
 // ─── Approval Table ───────────────────────────────────────────────────────────
@@ -663,6 +772,8 @@
   border-top: 1px solid var(--erp-border);
   font-size: 0.8125rem;
   color: var(--erp-text-secondary);
+  flex-wrap: wrap;
+  gap: 0.5rem;
 
   .pagination-btns {
     display: flex;
@@ -818,11 +929,9 @@
 
 .health-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  // auto-fit: fills as many columns as fit, minimum 120px each — adapts to any width
+  grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
   gap: 0.75rem;
-
-  @media (max-width: 1100px) { grid-template-columns: repeat(3, 1fr); }
-  @media (max-width: 640px)  { grid-template-columns: repeat(2, 1fr); }
 }
 
 .health-card {
@@ -948,8 +1057,11 @@
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.4);
-  z-index: 99;
+  background: rgba(0,0,0,0.45);
+  z-index: 110; // above header (90), below sidebar (120)
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: opacity var(--erp-transition-md);
 
   @media (max-width: 768px) { &.visible { display: block; } }
 }
@@ -966,7 +1078,9 @@
 
   .erp-main {
     margin-left: 0 !important;
-    padding: 1rem;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0.875rem !important;
   }
 }
 
@@ -976,16 +1090,13 @@
 
 .dashboard-top-layout {
   display: grid;
-  grid-template-columns: 1fr 300px;
+  // fluid side column: 280px on wide → auto-shrink to 240px on smaller desktops
+  grid-template-columns: 1fr clamp(240px, 22vw, 300px);
   gap: 1rem;
   margin-bottom: 1rem;
   align-items: start;
 
-  @media (max-width: 1280px) {
-    grid-template-columns: 1fr 280px;
-  }
-
-  @media (max-width: 1024px) {
+  @media (max-width: 1100px) {
     grid-template-columns: 1fr;
 
     .dashboard-top-side {
@@ -1161,4 +1272,213 @@
 .ops-activity-meta {
   font-size: 0.6875rem;
   color: var(--erp-text-muted);
+}
+
+// ─── Premium Button Polish ─────────────────────────────────────────────────────
+
+.erp-btn {
+  &.btn-primary {
+    background: var(--erp-primary);
+    box-shadow: 0 1px 2px rgba(37,99,235,0.2);
+
+    &:hover {
+      background: var(--erp-primary-hover, #1D4ED8);
+      box-shadow: 0 4px 12px rgba(37,99,235,0.3);
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: translateY(0);
+      box-shadow: 0 1px 3px rgba(37,99,235,0.2);
+    }
+  }
+
+  &:focus-visible {
+    box-shadow: var(--erp-shadow-focus);
+  }
+}
+
+// ─── Table Row Animation ──────────────────────────────────────────────────────
+
+.erp-table tbody tr {
+  animation: erp-fade-in 0.2s ease both;
+}
+
+// ─── Health Card Polish ───────────────────────────────────────────────────────
+
+.health-card {
+  transition:
+    background var(--erp-transition),
+    border-color var(--erp-transition),
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+
+  &:hover {
+    box-shadow: var(--erp-shadow-md);
+    transform: translateY(-1px);
+  }
+}
+
+// ─── Sidebar Active Indicator Polish ─────────────────────────────────────────
+
+.sidebar-nav-item {
+  border-radius: var(--erp-radius-sm);
+  margin: 0 0.5rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+
+  &.active::before {
+    left: -0.5rem;
+    border-radius: 0 3px 3px 0;
+  }
+}
+
+.sidebar-sub-item {
+  padding-left: 2.75rem;
+  margin: 0 0.5rem;
+}
+
+// ─── Dropdown Menu ────────────────────────────────────────────────────────────
+
+.erp-dropdown {
+  background: var(--erp-surface);
+  border: 1px solid var(--erp-border);
+  border-radius: var(--erp-radius);
+  box-shadow: var(--erp-shadow-lg);
+  animation: erp-scale-in 0.15s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: top;
+  overflow: hidden;
+  z-index: var(--erp-z-dropdown);
+}
+
+.erp-dropdown-item {
+  padding: 0.5rem 0.875rem;
+  font-size: 0.8125rem;
+  color: var(--erp-text-primary);
+  cursor: pointer;
+  transition: background var(--erp-transition), color var(--erp-transition);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  border: none;
+  background: none;
+  width: 100%;
+  font-family: inherit;
+  text-align: left;
+
+  &:hover {
+    background: var(--erp-surface-2);
+    color: var(--erp-primary);
+  }
+
+  &:focus-visible {
+    background: var(--erp-surface-2);
+    outline: none;
+  }
+}
+
+// ─── Dashboard Page Header ────────────────────────────────────────────────────
+
+.dashboard-page-header {
+  margin-bottom: clamp(1rem, 2.5vw, 1.5rem);
+  animation: erp-slide-up 0.2s ease both;
+
+  h1 {
+    font-size: clamp(1.125rem, 2.5vw, 1.375rem);
+    font-weight: 700;
+    color: var(--erp-text-primary);
+    letter-spacing: -0.025em;
+    margin: 0 0 0.25rem;
+    line-height: 1.2;
+  }
+
+  p {
+    font-size: clamp(0.8125rem, 1.5vw, 0.875rem);
+    color: var(--erp-text-secondary);
+    margin: 0;
+    line-height: 1.5;
+  }
+}
+
+// ─── Page Header ─────────────────────────────────────────────────────────────
+
+.erp-page-header {
+  margin-bottom: 1.5rem;
+  animation: erp-slide-up 0.2s ease both;
+
+  h1, h2 {
+    font-size: 1.375rem;
+    font-weight: 700;
+    color: var(--erp-text-primary);
+    letter-spacing: -0.025em;
+    margin: 0 0 0.25rem;
+  }
+
+  p {
+    font-size: 0.875rem;
+    color: var(--erp-text-secondary);
+    margin: 0;
+  }
+}
+
+// ─── Responsive Header Adjustments ───────────────────────────────────────────
+
+// Tablet (769-1024px): hide profile name/role text to save header real estate
+@media (max-width: 1024px) {
+  .erp-header {
+    .profile-info { display: none; }
+    .header-divider { display: none; }
+  }
+}
+
+// Small mobile (≤480px): further compress header
+@media (max-width: 480px) {
+  .erp-header {
+    padding: 0 0.75rem;
+    gap: 0.5rem;
+
+    // hide fullscreen toggle — not useful on mobile
+    .header-btn:has(svg[data-lucide="maximize-2"]),
+    .header-btn:has(svg[data-lucide="minimize-2"]) { display: none; }
+  }
+}
+
+// ─── Responsive Touch Targets ─────────────────────────────────────────────────
+
+@media (max-width: 768px) {
+  .sidebar-nav-item {
+    min-height: 44px; // WCAG 2.5.5 touch target size
+  }
+
+  .erp-btn { min-height: 40px; }
+  .header-btn { padding: 0.5rem; }
+  .header-toggle { padding: 0.5rem; }
+}
+
+// ─── Ultra-Wide Support (≥1536px) ─────────────────────────────────────────────
+
+@media (min-width: 1536px) {
+  .erp-main {
+    padding: clamp(1.5rem, 2.5vw, 2rem) clamp(1.75rem, 3vw, 2.5rem);
+  }
+}
+
+// ─── Accessibility: Focus Visible ─────────────────────────────────────────────
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--erp-primary);
+  outline-offset: 2px;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  &:not(:focus-visible) {
+    outline: none;
+  }
 }

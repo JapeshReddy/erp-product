@@ -77,3 +77,10 @@ export function getStoredSession(): LoginSession | null {
 export function clearSession(): void {
   sessionStorage.removeItem(SESSION_KEY)
 }
+
+const USER_KEY = 'erp_user'
+
+/** Remove the cached user profile from sessionStorage. */
+export function clearUserData(): void {
+  sessionStorage.removeItem(USER_KEY)
+}

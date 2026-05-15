@@ -1,9 +1,20 @@
-import React, { useState } from 'react'
-import { Download, RefreshCw } from 'lucide-react'
+import React, { useState, useMemo } from 'react'
+import { Download, RefreshCw, ChevronsUpDown, ChevronUp, ChevronDown } from 'lucide-react'
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+  flexRender,
+  createColumnHelper,
+  type SortingState,
+  type Column,
+} from '@tanstack/react-table'
 import { SectionCard, EmptyState, Spinner } from '@/components/ui/DashboardPrimitives'
 import Badge, { statusToBadge } from '@/components/ui/Badge'
 import { useApprovalQueue } from '@/hooks/useApprovalQueue'
 import { useAuth } from '@/context/AuthContext'
+import type { ApprovalQueueRow } from '@/types/dashboard'
 
 function formatAmount(amount: number | null, currency: string | null): string {
   if (amount == null) return '—'
@@ -17,33 +28,118 @@ function formatDate(dateStr: string | null): string {
   return new Date(dateStr).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-function exportCSV(rows: any[]) {
+function exportCSV(rows: ApprovalQueueRow[]) {
   const headers = ['Invoice ID', 'Vendor', 'Amount', 'Submitted By', 'Status', 'Invoice Date', 'Approver']
   const lines = rows.map(r => [
     r.id, r.vendor ?? '', formatAmount(r.total_amount, r.currency),
     r.created_by ?? '', r.approval_status ?? '', r.invoice_date ?? '', r.approver_email ?? '',
   ].map(v => `"${v}"`).join(','))
-  const csv = [headers.join(','), ...lines].join('\n')
+  const csv  = [headers.join(','), ...lines].join('\n')
   const blob = new Blob([csv], { type: 'text/csv' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
+  const url  = URL.createObjectURL(blob)
+  const a    = document.createElement('a')
+  a.href     = url
   a.download = 'approval-queue.csv'
   a.click()
   URL.revokeObjectURL(url)
 }
 
+// ─── Sortable Column Header ───────────────────────────────────────────────────
+
+function SortableHeader({ column, label }: { column: Column<ApprovalQueueRow, unknown>; label: string }) {
+  const sorted = column.getIsSorted()
+  return (
+    <button
+      className="inv-th-sort-btn"
+      onClick={column.getToggleSortingHandler()}
+      aria-sort={sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : 'none'}
+    >
+      {label}
+      <span className="inv-th-sort-icon" aria-hidden="true">
+        {sorted === 'asc'  ? <ChevronUp size={12} />
+        : sorted === 'desc' ? <ChevronDown size={12} />
+        : <ChevronsUpDown size={12} style={{ opacity: 0.4 }} />}
+      </span>
+    </button>
+  )
+}
+
+// ─── Column Definitions ───────────────────────────────────────────────────────
+
+const columnHelper = createColumnHelper<ApprovalQueueRow>()
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 const ApprovalQueueTable: React.FC = () => {
   const { user } = useAuth()
   const { data, total, page, setPage, pageSize, isLoading, error, refresh } = useApprovalQueue(user?.client_id)
-  const [search, setSearch] = useState('')
 
-  const filtered = data.filter(r =>
-    !search ||
-    r.vendor?.toLowerCase().includes(search.toLowerCase()) ||
-    r.id.toLowerCase().includes(search.toLowerCase()) ||
-    r.created_by?.toLowerCase().includes(search.toLowerCase())
-  )
+  const [globalFilter, setGlobalFilter] = useState('')
+  const [sorting,      setSorting]      = useState<SortingState>([])
+
+  const columns = useMemo(() => [
+    columnHelper.accessor('id', {
+      header:        'Invoice ID',
+      cell:          info => (
+        <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: 'var(--erp-primary)' }}>
+          {info.getValue().slice(0, 8).toUpperCase()}
+        </span>
+      ),
+      enableSorting: false,
+    }),
+    columnHelper.accessor('vendor', {
+      header: ({ column }) => <SortableHeader column={column} label="Vendor" />,
+      cell:   info => <span style={{ fontWeight: 500 }}>{info.getValue() ?? '—'}</span>,
+    }),
+    columnHelper.accessor('total_amount', {
+      header: ({ column }) => <SortableHeader column={column} label="Amount" />,
+      cell:   info => <span style={{ fontWeight: 600 }}>{formatAmount(info.getValue(), info.row.original.currency)}</span>,
+    }),
+    columnHelper.accessor('created_by', {
+      header:        'Submitted By',
+      cell:          info => <span style={{ color: 'var(--erp-text-secondary)' }}>{info.getValue() ?? '—'}</span>,
+      enableSorting: false,
+    }),
+    columnHelper.accessor('approval_status', {
+      header:        'Status',
+      cell:          info => <Badge label={info.getValue() ?? 'Unknown'} variant={statusToBadge(info.getValue())} dot />,
+      enableSorting: false,
+    }),
+    columnHelper.accessor('invoice_date', {
+      header: ({ column }) => <SortableHeader column={column} label="Invoice Date" />,
+      cell:   info => <span style={{ color: 'var(--erp-text-secondary)' }}>{formatDate(info.getValue())}</span>,
+    }),
+    columnHelper.accessor('approver_email', {
+      header:        'Approver',
+      cell:          info => <span style={{ color: 'var(--erp-text-secondary)', fontSize: '0.75rem' }}>{info.getValue() ?? '—'}</span>,
+      enableSorting: false,
+    }),
+    columnHelper.display({
+      id:     'actions',
+      header: 'Actions',
+      cell:   () => (
+        <div className="table-actions">
+          <button className="table-action-btn">Approve</button>
+          <button className="table-action-btn btn-danger">Reject</button>
+          <button className="table-action-btn">View</button>
+        </div>
+      ),
+    }),
+  ], [])
+
+  const table = useReactTable({
+    data,
+    columns,
+    state: { sorting, globalFilter },
+    onSortingChange:    setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    getCoreRowModel:    getCoreRowModel(),
+    getSortedRowModel:  getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    // pagination is server-side
+    manualPagination:   true,
+    pageCount:          Math.ceil(total / pageSize),
+  })
 
   const totalPages = Math.ceil(total / pageSize)
 
@@ -57,23 +153,23 @@ const ApprovalQueueTable: React.FC = () => {
           <input
             type="search"
             placeholder="Search…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
+            value={globalFilter}
+            onChange={e => setGlobalFilter(e.target.value)}
             style={{
-              background: 'var(--erp-surface-2)',
-              border: '1px solid var(--erp-border)',
+              background:   'var(--erp-surface-2)',
+              border:       '1px solid var(--erp-border)',
               borderRadius: 'var(--erp-radius-sm)',
-              padding: '0.3125rem 0.625rem',
-              fontSize: '0.8125rem',
-              color: 'var(--erp-text-primary)',
-              fontFamily: 'inherit',
-              outline: 'none',
+              padding:      '0.3125rem 0.625rem',
+              fontSize:     '0.8125rem',
+              color:        'var(--erp-text-primary)',
+              fontFamily:   'inherit',
+              outline:      'none',
             }}
           />
           <button className="erp-btn btn-ghost btn-sm" onClick={() => exportCSV(data)}>
             <Download size={14} /> CSV
           </button>
-          <button className="erp-btn btn-ghost btn-sm" onClick={refresh} disabled={isLoading}>
+          <button className="erp-btn btn-ghost btn-sm" onClick={() => refresh()} disabled={isLoading}>
             <RefreshCw size={14} className={isLoading ? 'spin' : ''} />
           </button>
         </div>
@@ -85,43 +181,33 @@ const ApprovalQueueTable: React.FC = () => {
         </div>
       ) : error ? (
         <EmptyState title="Failed to load" message={error} />
-      ) : filtered.length === 0 ? (
+      ) : table.getRowModel().rows.length === 0 ? (
         <EmptyState title="No pending approvals" message="All invoices are up to date." />
       ) : (
         <>
           <div className="approval-table-wrap">
             <table className="erp-table">
               <thead>
-                <tr>
-                  <th>Invoice ID</th>
-                  <th>Vendor</th>
-                  <th>Amount</th>
-                  <th>Submitted By</th>
-                  <th>Status</th>
-                  <th>Invoice Date</th>
-                  <th>Approver</th>
-                  <th>Actions</th>
-                </tr>
+                {table.getHeaderGroups().map(hg => (
+                  <tr key={hg.id}>
+                    {hg.headers.map(header => (
+                      <th key={header.id}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(header.column.columnDef.header, header.getContext())}
+                      </th>
+                    ))}
+                  </tr>
+                ))}
               </thead>
               <tbody>
-                {filtered.map(row => (
+                {table.getRowModel().rows.map(row => (
                   <tr key={row.id}>
-                    <td style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: 'var(--erp-primary)' }}>
-                      {row.id.slice(0, 8).toUpperCase()}
-                    </td>
-                    <td style={{ fontWeight: 500 }}>{row.vendor ?? '—'}</td>
-                    <td style={{ fontWeight: 600 }}>{formatAmount(row.total_amount, row.currency)}</td>
-                    <td style={{ color: 'var(--erp-text-secondary)' }}>{row.created_by ?? '—'}</td>
-                    <td><Badge label={row.approval_status ?? 'Unknown'} variant={statusToBadge(row.approval_status)} dot /></td>
-                    <td style={{ color: 'var(--erp-text-secondary)' }}>{formatDate(row.invoice_date)}</td>
-                    <td style={{ color: 'var(--erp-text-secondary)', fontSize: '0.75rem' }}>{row.approver_email ?? '—'}</td>
-                    <td>
-                      <div className="table-actions">
-                        <button className="table-action-btn">Approve</button>
-                        <button className="table-action-btn btn-danger">Reject</button>
-                        <button className="table-action-btn">View</button>
-                      </div>
-                    </td>
+                    {row.getVisibleCells().map(cell => (
+                      <td key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>

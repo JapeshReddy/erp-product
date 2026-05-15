@@ -1,0 +1,5 @@
+/* Tailwind CSS — loaded alongside SCSS; preflight is disabled in tailwind.config.ts
+   so this does NOT reset Bootstrap or existing styles. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

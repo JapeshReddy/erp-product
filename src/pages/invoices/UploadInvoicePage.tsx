@@ -1,37 +1,39 @@
-import React, { useState, useRef, useCallback } from 'react'
+import React, { useState, useCallback } from 'react'
+import { useDropzone } from 'react-dropzone'
 import {
   Upload, FileText, Image, X, CheckCircle,
   AlertTriangle, Camera, RotateCcw, ArrowRight,
   Eye, Shield, ChevronRight,
 } from 'lucide-react'
 import '@/styles/_invoices.scss'
+import { useAuth } from '@/context/AuthContext'
+import { getStoredSession } from '@/services/authService'
+import { supabase } from '@/lib/supabase'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type UploadStage = 'idle' | 'uploading' | 'processing' | 'done' | 'error'
 
 interface UploadedFile {
-  file: File
+  file:    File
   preview: string | null
-  id: string
+  id:      string
 }
 
 type ValidationError = 'size' | 'format' | 'duplicate' | null
 
-const ACCEPTED_FORMATS = ['application/pdf', 'image/jpeg', 'image/png']
-const ACCEPTED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png']
 const MAX_SIZE_MB = 10
+const MAX_BYTES   = MAX_SIZE_MB * 1_048_576
+
+const ACCEPTED_MIME: Record<string, string[]> = {
+  'application/pdf': ['.pdf'],
+  'image/jpeg':      ['.jpg', '.jpeg'],
+  'image/png':       ['.png'],
+}
 
 function formatSize(bytes: number): string {
   if (bytes >= 1_048_576) return `${(bytes / 1_048_576).toFixed(1)} MB`
   return `${(bytes / 1024).toFixed(0)} KB`
-}
-
-function validateFile(file: File, existing: UploadedFile[]): ValidationError {
-  if (!ACCEPTED_FORMATS.includes(file.type)) return 'format'
-  if (file.size > MAX_SIZE_MB * 1_048_576) return 'size'
-  if (existing.some(f => f.file.name === file.name && f.file.size === file.size)) return 'duplicate'
-  return null
 }
 
 // ─── Validation Banner ────────────────────────────────────────────────────────
@@ -55,9 +57,9 @@ const ValidationBanner: React.FC<{ error: ValidationError; onDismiss: () => void
 // ─── File Card ────────────────────────────────────────────────────────────────
 
 const FileCard: React.FC<{
-  item: UploadedFile
+  item:     UploadedFile
   onRemove: (id: string) => void
-  stage: UploadStage
+  stage:    UploadStage
   progress: number
 }> = ({ item, onRemove, stage, progress }) => {
   const isPdf = item.file.type === 'application/pdf'
@@ -117,9 +119,9 @@ const FileCard: React.FC<{
 // ─── Camera Modal ─────────────────────────────────────────────────────────────
 
 const CameraModal: React.FC<{ onClose: () => void; onCapture: (file: File) => void }> = ({ onClose, onCapture }) => {
-  const videoRef  = useRef<HTMLVideoElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const streamRef = useRef<MediaStream | null>(null)
+  const videoRef  = React.useRef<HTMLVideoElement>(null)
+  const canvasRef = React.useRef<HTMLCanvasElement>(null)
+  const streamRef = React.useRef<MediaStream | null>(null)
   const [started,  setStarted]  = useState(false)
   const [captured, setCaptured] = useState<string | null>(null)
   const [camError, setCamError] = useState<string | null>(null)
@@ -221,54 +223,96 @@ const CameraModal: React.FC<{ onClose: () => void; onCapture: (file: File) => vo
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 const UploadInvoicePage: React.FC = () => {
+  const { user: _user } = useAuth()
   const [files,           setFiles]           = useState<UploadedFile[]>([])
   const [stage,           setStage]           = useState<UploadStage>('idle')
   const [progress,        setProgress]        = useState(0)
   const [validationError, setValidationError] = useState<ValidationError>(null)
-  const [isDragging,      setIsDragging]      = useState(false)
   const [showCamera,      setShowCamera]      = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [uploadError,     setUploadError]     = useState<string | null>(null)
 
-  const addFile = (file: File) => {
-    const err = validateFile(file, files)
-    if (err) { setValidationError(err); return }
-    setValidationError(null)
-    const preview = file.type.startsWith('image/') ? URL.createObjectURL(file) : null
-    setFiles(prev => [...prev, { file, preview, id: `${Date.now()}-${Math.random()}` }])
-  }
+  // Add a single file (used by both dropzone + camera capture)
+  const addFile = useCallback((file: File) => {
+    setFiles(prev => {
+      if (prev.some(f => f.file.name === file.name && f.file.size === file.size)) {
+        setValidationError('duplicate')
+        return prev
+      }
+      setValidationError(null)
+      const preview = file.type.startsWith('image/') ? URL.createObjectURL(file) : null
+      return [...prev, { file, preview, id: `${Date.now()}-${Math.random()}` }]
+    })
+  }, [])
 
   const removeFile = (id: string) => {
     setFiles(prev => {
-      prev.find(f => f.id === id)?.preview && URL.revokeObjectURL(prev.find(f => f.id === id)!.preview!)
+      const target = prev.find(f => f.id === id)
+      if (target?.preview) URL.revokeObjectURL(target.preview)
       return prev.filter(f => f.id !== id)
     })
   }
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault(); setIsDragging(false)
-    Array.from(e.dataTransfer.files).forEach(addFile)
-  }, [files])
+  // ─── react-dropzone ────────────────────────────────────────────────────────
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
+    accept:    ACCEPTED_MIME,
+    maxSize:   MAX_BYTES,
+    multiple:  true,
+    disabled:  stage !== 'idle',
+    noClick:   false,
+    onDropAccepted: (accepted) => accepted.forEach(addFile),
+    onDropRejected: (rejected) => {
+      const code = rejected[0]?.errors[0]?.code
+      setValidationError(code === 'file-too-large' ? 'size' : 'format')
+    },
+  })
 
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    Array.from(e.target.files ?? []).forEach(addFile)
-    e.target.value = ''
-  }
-
-  const simulateUpload = async () => {
+  const handleUpload = async () => {
     if (!files.length) return
-    setStage('uploading'); setProgress(0)
-    for (let p = 0; p <= 100; p += 10) {
-      await new Promise(r => setTimeout(r, 120))
-      setProgress(p)
+
+    const session = getStoredSession()
+    if (!session?.access_token) {
+      setUploadError('Session expired. Please log in again.')
+      return
     }
-    setStage('processing')
-    await new Promise(r => setTimeout(r, 1800))
-    setStage('done')
+
+    setStage('uploading')
+    setProgress(0)
+    setUploadError(null)
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const { file } = files[i]
+        const formData = new FormData()
+        formData.append('file', file)
+        setProgress(Math.round((i / files.length) * 80))
+
+        const { data, error } = await supabase.functions.invoke('upload-invoice-email', {
+          body:    formData,
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        })
+
+        if (error || !data?.success) {
+          const msg = data?.message ?? error?.message ?? 'Upload failed. Please try again.'
+          setUploadError(msg)
+          setStage('error')
+          return
+        }
+
+        setProgress(Math.round(((i + 1) / files.length) * 100))
+      }
+
+      setStage('processing')
+      await new Promise(r => setTimeout(r, 1200))
+      setStage('done')
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Unexpected error. Please try again.')
+      setStage('error')
+    }
   }
 
   const reset = () => {
     files.forEach(f => f.preview && URL.revokeObjectURL(f.preview))
-    setFiles([]); setStage('idle'); setProgress(0); setValidationError(null)
+    setFiles([]); setStage('idle'); setProgress(0); setValidationError(null); setUploadError(null)
   }
 
   return (
@@ -299,43 +343,35 @@ const UploadInvoicePage: React.FC = () => {
 
               <div className="inv-upload-card-body">
                 <ValidationBanner error={validationError} onDismiss={() => setValidationError(null)} />
+                {uploadError && (
+                  <div className="inv-validation-banner" style={{ marginBottom: '1rem' }}>
+                    <AlertTriangle size={15} />
+                    <span>{uploadError}</span>
+                    <button onClick={() => setUploadError(null)}><X size={13} /></button>
+                  </div>
+                )}
 
-                {/* Drop Zone */}
+                {/* Drop Zone — powered by react-dropzone */}
                 {stage === 'idle' && (
                   <div
-                    className={`inv-dropzone ${isDragging ? 'dragging' : ''}`}
-                    onDragOver={e => { e.preventDefault(); setIsDragging(true) }}
-                    onDragLeave={() => setIsDragging(false)}
-                    onDrop={handleDrop}
-                    onClick={() => fileInputRef.current?.click()}
-                    role="button"
+                    {...getRootProps()}
+                    className={`inv-dropzone ${isDragActive ? 'dragging' : ''}`}
                     tabIndex={0}
-                    onKeyDown={e => e.key === 'Enter' && fileInputRef.current?.click()}
                   >
+                    <input {...getInputProps()} />
                     <div className="inv-dropzone-icon-wrap">
                       <Upload size={30} />
                     </div>
                     <div className="inv-dropzone-title">
-                      {isDragging ? 'Drop files here' : 'Drag & drop invoices here'}
+                      {isDragActive ? 'Drop files here' : 'Drag & drop invoices here'}
                     </div>
-                    <div className="inv-dropzone-sub">
-                      or click anywhere to browse files
-                    </div>
+                    <div className="inv-dropzone-sub">or click anywhere to browse files</div>
                     <div className="inv-dropzone-format-pills">
                       <span className="inv-format-pill">PDF</span>
                       <span className="inv-format-pill">JPG</span>
                       <span className="inv-format-pill">PNG</span>
                     </div>
                     <div className="inv-dropzone-limit">Maximum file size: {MAX_SIZE_MB} MB per file</div>
-
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept={ACCEPTED_EXTENSIONS.join(',')}
-                      multiple
-                      style={{ display: 'none' }}
-                      onChange={handleFileInput}
-                    />
                   </div>
                 )}
 
@@ -354,19 +390,13 @@ const UploadInvoicePage: React.FC = () => {
                 {files.length > 0 && (
                   <div className="inv-files-list">
                     {files.map(item => (
-                      <FileCard
-                        key={item.id}
-                        item={item}
-                        onRemove={removeFile}
-                        stage={stage}
-                        progress={progress}
-                      />
+                      <FileCard key={item.id} item={item} onRemove={removeFile} stage={stage} progress={progress} />
                     ))}
                   </div>
                 )}
 
                 {files.length > 0 && stage === 'idle' && (
-                  <button className="inv-add-more" onClick={() => fileInputRef.current?.click()}>
+                  <button className="inv-add-more" onClick={open}>
                     + Add another file
                   </button>
                 )}
@@ -378,7 +408,7 @@ const UploadInvoicePage: React.FC = () => {
                       <button className="erp-btn btn-ghost" onClick={reset}>
                         <X size={15} /> Clear All
                       </button>
-                      <button className="erp-btn btn-primary" onClick={simulateUpload}>
+                      <button className="erp-btn btn-primary" onClick={handleUpload}>
                         <Upload size={15} />
                         Upload {files.length} File{files.length > 1 ? 's' : ''}
                       </button>
@@ -401,7 +431,7 @@ const UploadInvoicePage: React.FC = () => {
                     </>
                   )}
                   {stage === 'error' && (
-                    <button className="erp-btn btn-primary" onClick={simulateUpload}>
+                    <button className="erp-btn btn-primary" onClick={handleUpload}>
                       <RotateCcw size={15} /> Retry Upload
                     </button>
                   )}
@@ -435,7 +465,6 @@ const UploadInvoicePage: React.FC = () => {
           <div className="inv-upload-aside">
             <div className="inv-aside">
 
-              {/* Upload Guidelines */}
               <div className="inv-aside-card">
                 <div className="inv-aside-title">Upload Guidelines</div>
                 <ul className="inv-guideline-list">
@@ -447,35 +476,25 @@ const UploadInvoicePage: React.FC = () => {
                 </ul>
               </div>
 
-              {/* Workflow Steps */}
               <div className="inv-aside-card">
                 <div className="inv-aside-title">What Happens Next</div>
                 <div className="inv-steps">
-                  <div className="inv-step">
-                    <div className="inv-step-num">1</div>
-                    <div>
-                      <div className="inv-step-label">Upload & Extract</div>
-                      <div className="inv-step-sub">Invoice data extracted automatically</div>
+                  {[
+                    ['1', 'Upload & Extract', 'Invoice data extracted automatically'],
+                    ['2', 'Review & Validate', 'Review extracted fields before submission'],
+                    ['3', 'Submit for Approval', 'Routed to approval queue automatically'],
+                  ].map(([num, label, sub]) => (
+                    <div key={num} className="inv-step">
+                      <div className="inv-step-num">{num}</div>
+                      <div>
+                        <div className="inv-step-label">{label}</div>
+                        <div className="inv-step-sub">{sub}</div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="inv-step">
-                    <div className="inv-step-num">2</div>
-                    <div>
-                      <div className="inv-step-label">Review & Validate</div>
-                      <div className="inv-step-sub">Review extracted fields before submission</div>
-                    </div>
-                  </div>
-                  <div className="inv-step">
-                    <div className="inv-step-num">3</div>
-                    <div>
-                      <div className="inv-step-label">Submit for Approval</div>
-                      <div className="inv-step-sub">Routed to approval queue automatically</div>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
 
-              {/* Security Notice */}
               <div className="inv-aside-card">
                 <div className="inv-aside-title">Security</div>
                 <div className="inv-security-notice">
@@ -484,7 +503,6 @@ const UploadInvoicePage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Mobile Tip */}
               <div className="inv-aside-card inv-mobile-tip">
                 <div className="inv-aside-title">📱 Mobile Tip</div>
                 <p>On mobile, tap the upload area to open your file gallery or camera. Direct camera capture gives the best scan quality.</p>

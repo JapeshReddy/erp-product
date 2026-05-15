@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import {
   fetchRecentActivity,
   fetchSecurityAlerts,
@@ -11,140 +11,66 @@ import type { ActivityItem, SecurityAlert, EmailLog, RoleCount } from '@/types/d
 // ─── Recent Activity ──────────────────────────────────────────────────────────
 
 export function useRecentActivity(clientId: string | undefined) {
-  const [data, setData] = useState<ActivityItem[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data, isLoading, error } = useQuery<ActivityItem[]>({
+    queryKey:        ['activity', clientId],
+    queryFn:         () => fetchRecentActivity(clientId!),
+    enabled:         !!clientId,
+    staleTime:       15_000,
+    refetchInterval: 30_000,
+  })
 
-  useEffect(() => {
-    if (!clientId) return
-    let cancelled = false
-    const load = async () => {
-      setIsLoading(true)
-      try {
-        const result = await fetchRecentActivity(clientId)
-        if (!cancelled) setData(result)
-      } catch {
-        if (!cancelled) setError('Failed to load activity')
-      } finally {
-        if (!cancelled) setIsLoading(false)
-      }
-    }
-    load()
-    const interval = setInterval(load, 30_000)
-    return () => { cancelled = true; clearInterval(interval) }
-  }, [clientId])
-
-  return { data, isLoading, error }
+  return { data: data ?? [], isLoading, error: error ? (error as Error).message : null }
 }
 
 // ─── Security ─────────────────────────────────────────────────────────────────
 
 export function useSecurityData(clientId: string | undefined) {
-  const [data, setData] = useState<SecurityAlert[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data, isLoading, error } = useQuery<SecurityAlert[]>({
+    queryKey:  ['security', clientId],
+    queryFn:   () => fetchSecurityAlerts(clientId!),
+    enabled:   !!clientId,
+    staleTime: 60_000,
+  })
 
-  useEffect(() => {
-    if (!clientId) return
-    let cancelled = false
-    const load = async () => {
-      setIsLoading(true)
-      try {
-        const result = await fetchSecurityAlerts(clientId)
-        if (!cancelled) setData(result)
-      } catch {
-        if (!cancelled) setError('Failed to load security data')
-      } finally {
-        if (!cancelled) setIsLoading(false)
-      }
-    }
-    load()
-    return () => { cancelled = true }
-  }, [clientId])
-
-  return { data, isLoading, error }
+  return { data: data ?? [], isLoading, error: error ? (error as Error).message : null }
 }
 
 // ─── Email Monitoring ─────────────────────────────────────────────────────────
 
 export function useEmailMonitoring(clientId: string | undefined) {
-  const [data, setData] = useState<EmailLog[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data, isLoading, error } = useQuery<EmailLog[]>({
+    queryKey:  ['email-logs', clientId],
+    queryFn:   () => fetchEmailLogs(clientId!),
+    enabled:   !!clientId,
+    staleTime: 60_000,
+  })
 
-  useEffect(() => {
-    if (!clientId) return
-    let cancelled = false
-    const load = async () => {
-      setIsLoading(true)
-      try {
-        const result = await fetchEmailLogs(clientId)
-        if (!cancelled) setData(result)
-      } catch {
-        if (!cancelled) setError('Failed to load email logs')
-      } finally {
-        if (!cancelled) setIsLoading(false)
-      }
-    }
-    load()
-    return () => { cancelled = true }
-  }, [clientId])
-
-  return { data, isLoading, error }
+  return { data: data ?? [], isLoading, error: error ? (error as Error).message : null }
 }
 
 // ─── User Overview ────────────────────────────────────────────────────────────
 
 export function useUserOverview(clientId: string | undefined) {
-  const [data, setData] = useState<RoleCount[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data, isLoading, error } = useQuery<RoleCount[]>({
+    queryKey:  ['user-roles', clientId],
+    queryFn:   () => fetchUserRoles(clientId!),
+    enabled:   !!clientId,
+    staleTime: 5 * 60_000,
+  })
 
-  useEffect(() => {
-    if (!clientId) return
-    let cancelled = false
-    const load = async () => {
-      setIsLoading(true)
-      try {
-        const result = await fetchUserRoles(clientId)
-        if (!cancelled) setData(result)
-      } catch {
-        if (!cancelled) setError('Failed to load user data')
-      } finally {
-        if (!cancelled) setIsLoading(false)
-      }
-    }
-    load()
-    return () => { cancelled = true }
-  }, [clientId])
-
-  return { data, isLoading, error }
+  return { data: data ?? [], isLoading, error: error ? (error as Error).message : null }
 }
 
 // ─── Audit Logs ───────────────────────────────────────────────────────────────
 
 export function useAuditLogs(clientId: string | undefined) {
-  const [data, setData] = useState<any[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, isLoading, error } = useQuery<any[]>({
+    queryKey:  ['audit-logs', clientId],
+    queryFn:   () => fetchAuditLogs(clientId!),
+    enabled:   !!clientId,
+    staleTime: 60_000,
+  })
 
-  useEffect(() => {
-    if (!clientId) return
-    let cancelled = false
-    const load = async () => {
-      setIsLoading(true)
-      try {
-        const result = await fetchAuditLogs(clientId)
-        if (!cancelled) setData(result)
-      } catch {
-        if (!cancelled) setError('Failed to load audit logs')
-      } finally {
-        if (!cancelled) setIsLoading(false)
-      }
-    }
-    load()
-    return () => { cancelled = true }
-  }, [clientId])
-
-  return { data, isLoading, error }
+  return { data: data ?? [], isLoading, error: error ? (error as Error).message : null }
 }

@@ -1,30 +1,31 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { fetchApprovalQueue } from '@/services/dashboardService'
 import type { ApprovalQueueRow } from '@/types/dashboard'
 
+interface ApprovalQueueResult {
+  data:  ApprovalQueueRow[]
+  total: number
+}
+
 export function useApprovalQueue(clientId: string | undefined, pageSize = 10) {
-  const [data, setData] = useState<ApprovalQueueRow[]>([])
-  const [total, setTotal] = useState(0)
   const [page, setPage] = useState(0)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
-  const load = useCallback(async () => {
-    if (!clientId) return
-    setIsLoading(true)
-    setError(null)
-    try {
-      const result = await fetchApprovalQueue(clientId, page, pageSize)
-      setData(result.data)
-      setTotal(result.total)
-    } catch {
-      setError('Failed to load approval queue')
-    } finally {
-      setIsLoading(false)
-    }
-  }, [clientId, page, pageSize])
+  const { data: result, isLoading, error, refetch } = useQuery<ApprovalQueueResult>({
+    queryKey: ['approval-queue', clientId, page, pageSize],
+    queryFn:  () => fetchApprovalQueue(clientId!, page, pageSize),
+    enabled:  !!clientId,
+    staleTime: 30_000,
+  })
 
-  useEffect(() => { load() }, [load])
-
-  return { data, total, page, setPage, pageSize, isLoading, error, refresh: load }
+  return {
+    data:      result?.data  ?? [],
+    total:     result?.total ?? 0,
+    page,
+    setPage,
+    pageSize,
+    isLoading,
+    error:     error ? (error as Error).message : null,
+    refresh:   refetch,
+  }
 }

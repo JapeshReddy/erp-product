@@ -33,3 +33,17 @@ verify_jwt = false
 
 [functions.confirm-signup]
 verify_jwt = false
+
+[functions.auth-login]
+verify_jwt = false
+[functions.extract-invoice-data]
+verify_jwt = false
+
+[functions.validate-invoice-data]
+verify_jwt = false
+
+[functions.distribute-invoice-tax]
+verify_jwt = false
+
+[functions.insert-invoice-db]
+verify_jwt = false

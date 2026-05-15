@@ -1,0 +1,245 @@
+// ─── Global Animation System ──────────────────────────────────────────────────
+// Premium micro-interactions and animation utilities
+
+// ─── Keyframes ────────────────────────────────────────────────────────────────
+
+@keyframes erp-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes erp-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes erp-slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes erp-slide-down {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes erp-scale-in {
+  from { opacity: 0; transform: scale(0.96) translateY(6px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes erp-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes erp-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+@keyframes erp-bounce-subtle {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-3px); }
+}
+
+@keyframes erp-count-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+// ─── Smooth Scroll ────────────────────────────────────────────────────────────
+
+html {
+  scroll-behavior: smooth;
+}
+
+// ─── Focus Ring ──────────────────────────────────────────────────────────────
+
+:focus-visible {
+  outline: 2px solid var(--erp-primary, #2563EB);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+// ─── Skeleton Loader ──────────────────────────────────────────────────────────
+
+.erp-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--erp-surface-2, #F8FAFC) 0%,
+    var(--erp-border, #E2E8F0) 40%,
+    var(--erp-surface-2, #F8FAFC) 80%
+  );
+  background-size: 400% 100%;
+  animation: erp-shimmer 1.6s ease-in-out infinite;
+  border-radius: 6px;
+  flex-shrink: 0;
+
+  [data-theme='dark'] & {
+    background: linear-gradient(
+      90deg,
+      rgba(255,255,255,0.04) 0%,
+      rgba(255,255,255,0.09) 40%,
+      rgba(255,255,255,0.04) 80%
+    );
+    background-size: 400% 100%;
+  }
+}
+
+// ─── Skeleton Presets ─────────────────────────────────────────────────────────
+
+.erp-skeleton-text {
+  @extend .erp-skeleton;
+  height: 14px;
+  width: 100%;
+  border-radius: 4px;
+}
+
+.erp-skeleton-text-sm {
+  @extend .erp-skeleton;
+  height: 11px;
+  width: 60%;
+  border-radius: 3px;
+}
+
+.erp-skeleton-circle {
+  @extend .erp-skeleton;
+  border-radius: 50%;
+}
+
+.erp-skeleton-block {
+  @extend .erp-skeleton;
+  border-radius: 8px;
+}
+
+// KPI card skeleton
+.erp-kpi-skeleton {
+  .erp-kpi-skel-icon {
+    @extend .erp-skeleton;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+  }
+
+  .erp-kpi-skel-value {
+    @extend .erp-skeleton;
+    height: 28px;
+    width: 70%;
+    margin-bottom: 0.4rem;
+    border-radius: 6px;
+  }
+
+  .erp-kpi-skel-label {
+    @extend .erp-skeleton;
+    height: 11px;
+    width: 55%;
+    border-radius: 3px;
+  }
+}
+
+// ─── Animation Utility Classes ────────────────────────────────────────────────
+
+.erp-animate-fade-in  { animation: erp-fade-in 0.2s ease both; }
+.erp-animate-slide-up { animation: erp-slide-up 0.22s ease both; }
+.erp-animate-scale-in { animation: erp-scale-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+// Stagger delays for list items
+@for $i from 1 through 12 {
+  .erp-stagger-#{$i} {
+    animation-delay: #{($i - 1) * 40}ms;
+  }
+}
+
+// ─── Transition Utilities ─────────────────────────────────────────────────────
+
+.erp-transition-all    { transition: all 0.18s ease; }
+.erp-transition-colors { transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease; }
+.erp-transition-shadow { transition: box-shadow 0.18s ease, transform 0.18s ease; }
+
+// ─── Hover Lift ───────────────────────────────────────────────────────────────
+
+.erp-hover-lift {
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  }
+
+  [data-theme='dark'] &:hover {
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  }
+}
+
+// ─── Reduced Motion ───────────────────────────────────────────────────────────
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .erp-skeleton,
+  .erp-skeleton-text,
+  .erp-skeleton-block,
+  .erp-skeleton-circle {
+    animation: none;
+    background: var(--erp-surface-2, #F8FAFC);
+  }
+}
+
+// ─── Custom Scrollbar ─────────────────────────────────────────────────────────
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--erp-border, #E2E8F0) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--erp-border, #E2E8F0);
+  border-radius: 99px;
+
+  &:hover {
+    background: var(--erp-text-muted, #94A3B8);
+  }
+}
+
+// ─── Selection ────────────────────────────────────────────────────────────────
+
+::selection {
+  background: rgba(37, 99, 235, 0.15);
+  color: inherit;
+}
+
+
+// ─── NProgress route-transition bar ──────────────────────────────────────────
+#nprogress .bar {
+  background: var(--erp-primary, #2563EB) !important;
+  height: 2px !important;
+}
+
+#nprogress .peg {
+  box-shadow: 0 0 8px var(--erp-primary, #2563EB), 0 0 4px var(--erp-primary, #2563EB) !important;
+}
+
+#nprogress .spinner-icon {
+  display: none !important;
+}
